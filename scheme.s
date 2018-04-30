@@ -62,13 +62,13 @@
 %macro CAR 1
 	DATA_UPPER %1
 	add %1, start_of_data
-	;mov %1, qword [%1]
+	
 %endmacro
 
 %macro CDR 1
 	DATA_LOWER %1
 	add %1, start_of_data
-	;mov %1, qword [%1]
+	
 %endmacro
 
 ;;; MAKE_MALLOC_LITERAL_PAIR target-addrees, car-addrees, cdr-addrees
@@ -88,8 +88,6 @@
     pop rax
 %endmacro
 
-;%define MAKE_LITERAL_FRACTION(numer, denom) (((((numer - start_of_data) << ((WORD_SIZE - TYPE_BITS) >> 1)) | (denom - start_of_data)) << TYPE_BITS) | T_FRACTION)
-
 
 ;;; MAKE_LITERAL_CLOSURE target, env, code
 %macro MAKE_LITERAL_CLOSURE 3
@@ -99,7 +97,6 @@
 	mov qword [rax], %2
 	sub qword [rax] , start_of_data
 	shl qword [rax], ((WORD_SIZE - TYPE_BITS) >> 1)
-	;lea rbx, [rax + 8 - start_of_data]
         lea rbx, [rax + 8]
         sub rbx, start_of_data
 	or qword [rax], rbx

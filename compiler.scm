@@ -2297,12 +2297,12 @@
 	(lambda (content)
 			(let ((content-lst (string->list content)))
 					(letrec ((run (lambda (sexprs rest)
-															(if (null? rest)
-																	sexprs
-																	(<sexpr> rest
-																						(lambda (sexpr remaining)
-																							(run `(,@sexprs ,sexpr) remaining))
-																						(lambda (_w) (error 'sexpr (format "no-match"))))))))
+							(if (null? rest)
+								sexprs
+							    (<sexpr> rest
+								(lambda (sexpr remaining)
+									(run `(,@sexprs ,sexpr) remaining))
+								(lambda (_w) (error 'sexpr (format "no-match"))))))))
 							(run '() content-lst)))))
 							
 (define compile-scheme-file
@@ -2323,38 +2323,25 @@
 				(set-box! symbol-table $symbol-table)
 				
 				(let (  (prologue (make-prologue))
-						(code-generation (fold-left (lambda (rest curr)
-															(string-append  rest
-																			(gen-newline)
-																			
-																			(code-gen curr 0)
-																			
-																			
-																			))
-																			""
-																			parsed-exprs))
-								(epilogue (make-epilogue))
-								)
-							
-
-							(string->file (string-append	prologue
-															(gen-newline)
-															 "; START_CODE_GEN:\n"
-															code-generation 
-															"; END_CODE_GEN:\n"
-																			(line-gen2 "cmp rax, Lcons1")
-																			(line-gen2 "je end")
-																			(line-gen2 "push qword [rax]")
-																			(line-gen2 "call write_sob_if_not_void")
-																			(line-gen2 "add rsp, 1*8")
-															epilogue
-															
-															
-															)
-									out))
-			
-		)
-	))
+					(code-generation (fold-left (lambda (rest curr)
+				  (string-append  rest
+						(gen-newline)
+						(code-gen curr 0)))
+						""
+						parsed-exprs))
+						(epilogue (make-epilogue)))
+						(string->file (string-append	prologue
+										(gen-newline)
+										 "; START_CODE_GEN:\n"
+										code-generation 
+										"; END_CODE_GEN:\n"
+										(line-gen2 "cmp rax, Lcons1")
+										(line-gen2 "je end")
+										(line-gen2 "push qword [rax]")
+										(line-gen2 "call write_sob_if_not_void")
+										(line-gen2 "add rsp, 1*8)
+										epilogue)
+									out)))))
 
 (define string->file
 	(lambda (str out-file)
@@ -2489,44 +2476,39 @@
 											 (gen-newline)))
 											
 			(else  
-				'error))
-		)
-	))
+				'error)))))
 
 (define code-gen-seq
 	(lambda (pe maj)
 			(let* ( (exprs (cadr pe)))
 					(string-append
-									(fold-left
-											(lambda (rest curr)
-															(string-append rest
-																						(code-gen curr maj)))
-											""
-											exprs)))))
+						(fold-left
+							(lambda (rest curr)
+								(string-append rest
+									       (code-gen curr maj)))
+							""
+							exprs)))))
 
 (define label-index (box 0))
 
 (define fetch-label-and-inc
 	(lambda ()
 			(let ((curr-index (unbox label-index)))
-					(begin (set-box! label-index (add1 curr-index))
-								(number->string curr-index)))))
+				(begin (set-box! label-index (add1 curr-index))
+					(number->string curr-index)))))
 
 (define const-code-generetion
 	(lambda (pe maj)
-		(let	((const-address (lookup-address (cadr pe) (unbox constant-table))))
-			(string-append(line-gen2 "mov rax, Lcons" (number->string const-address))
-			)
-		)
-	))
+		(let((const-address (lookup-address (cadr pe) (unbox constant-table))))
+			(string-append(line-gen2 "mov rax, Lcons" (number->string const-address))))))
 
 (define code-gen-if
 	(lambda (pe maj)
-		(let (  (test (cadr pe))
-				(dit (caddr pe))
-				(dif (cadddr pe))
-				(label-if3-else (string-append "L_if3_else_" (fetch-label-and-inc)))
-				(label-if3-exit (string-append "L_if3_exit_" (fetch-label-and-inc))))
+		(let ( (test (cadr pe))
+			(dit (caddr pe))
+			(dif (cadddr pe))
+			(label-if3-else (string-append "L_if3_else_" (fetch-label-and-inc)))
+			(label-if3-exit (string-append "L_if3_exit_" (fetch-label-and-inc))))
 			(string-append
 				(code-gen test maj)
 				(line-gen2 "cmp rax, Lcons3")
@@ -2535,10 +2517,7 @@
 				(line-gen2 "jmp " label-if3-exit)
 				(gen-line1 label-if3-else ":")
 				(code-gen dif maj)
-				(gen-line1 label-if3-exit ":")
-			)
-		)
-	))
+				(gen-line1 label-if3-exit ":")))))
 
 (define code-gen-or
 	(lambda (pe maj)
@@ -2549,24 +2528,20 @@
 			(string-append
 					(fold-left
 						(lambda (rest curr)
-							(string-append rest
-											(code-gen curr maj)
-											(line-gen2 "cmp rax, Lcons3")
-											(line-gen2 "jne " label-or-exit)))
-											""
-											exprs-without-last)
+							(string-append 	rest
+									(code-gen curr maj)
+									(line-gen2 "cmp rax, Lcons3")
+									(line-gen2 "jne " label-or-exit)))
+									""
+									exprs-without-last)
 									(code-gen last-expr maj)
-									(gen-line1 label-or-exit ":")
-					)
-				)
-	))
+									(gen-line1 label-or-exit ":")))))
 
 (define code-gen-pvar
 	(lambda (pe maj)
 			(let ((minor (caddr pe)))
 					(string-append
-							(line-gen2 "mov rax ,qword [rbp+(4+" (number->string minor)")*8] "))
-					)))
+							(line-gen2 "mov rax ,qword [rbp+(4+" (number->string minor)")*8] ")))))
 					
 (define code-gen-set
 	(lambda (pe maj)
@@ -2590,8 +2565,7 @@
 									((eq? var-tag 'fvar)
 										(line-gen2 "mov qword [Lprim" (number->string (lookup-address (cadr var) (unbox global-table))) "],rax"))
 								)
-							(line-gen2 "mov rax, Lcons1")
-					))))
+							(line-gen2 "mov rax, Lcons1")))))
 					
 (define code-gen-bvar
 	(lambda (pe maj)
@@ -2653,13 +2627,11 @@
 							(line-gen2 "mul rcx")
 							(line-gen2 "mov rcx, rax")
 							(line-gen2 "mov rax, rbx")
-							(line-gen2 "add rsp, rcx")
-							
-					))))
+							(line-gen2 "add rsp, rcx")))))
    
 (define code-gen-tc-applic
 	(lambda (pe maj)
-			(let* (	 (proc (cadr pe))
+			(let* (	 		(proc (cadr pe))
 						(args (caddr pe))
 						(label-error "L_error_apply_non_clos")
 						(label-smash-stack-loop (string-append "L_smash_stack_loop_" (fetch-label-and-inc)))
@@ -2691,7 +2663,7 @@
 							(line-gen2 "jne " label-error )
 							
 							(line-gen2 "mov rax, rbx")
-							;(line-gen2 "mov rbx, rax")
+							
 							(line-gen2 "mov r15, rax")
 							(line-gen2 "CLOSURE_ENV rbx")
 							(line-gen2 "push qword rbx")
@@ -2719,8 +2691,7 @@
 							(line-gen2 "mov rsp, r13 ")
 							(line-gen2 "mov rbp, r14 ") ;old_rbp
 							(line-gen2 "CLOSURE_CODE r15 ")
-							(line-gen2 "jmp r15 ")
-					))))
+							(line-gen2 "jmp r15 ")))))
 					
 (define help!
 	(lambda(i)
@@ -2732,15 +2703,12 @@
 				(line-gen2 "mov qword[r9], rcx")
 				(line-gen2 "sub r8, 8 ")
 				(line-gen2 "sub r9, 8 ")
-				(help! (- i 1))))
-							
-		))
+				(help! (- i 1))))))
 
 (define code-gen-box-get
 	(lambda (pe maj)
-			(let*   (	 (var (cadr pe))
-						(var-tag (car var))
-					)
+			(let*   (	(var (cadr pe))
+					(var-tag (car var)))
 					(string-append
 							(cond ((eq? var-tag 'pvar)
 											(string-append
@@ -2753,63 +2721,56 @@
 									((eq? var-tag 'fvar) 
 										(line-gen2 "mov rax, qword [Lprim" (number->string (lookup-address (cadr var) (unbox global-table))) "] ; take the box pointer"))
 								)
-							(line-gen2 "mov rax, qword [rax] ; unbox")
-					))))
+							(line-gen2 "mov rax, qword [rax] ; unbox")))))
 					
 (define code-gen-box-set
 	(lambda (pe maj)
-			(let* (	 (var (cadr pe))
-						(var-tag (car var))
-						(expr (caddr pe)))
+			(let* (	(var (cadr pe))
+				(var-tag (car var))
+				(expr (caddr pe)))
+			  (string-append
+				(code-gen expr maj)
+				(cond ((eq? var-tag 'pvar)
 					(string-append
-							(code-gen expr maj)
-							
-							(cond ((eq? var-tag 'pvar)
-											(string-append
-													(line-gen2 "mov qword [rbp+(4+" (number->string (caddr var)) ")*8] ,rax"))) 
-									((eq? var-tag 'bvar)
-									(string-append
-											(line-gen2 "mov rbx, qword [rbp+2*8] ;env")
-											(line-gen2 "mov rbx, qword [rbx+" (number->string (caddr var)) "*8] ; env[maj]")
-											(line-gen2 "mov rbx, qword [rbx+" (number->string (cadddr var)) "*8] ; env[maj][min]")
-											(line-gen2 "mov qword [rbx], rax")))
-									((eq? var-tag 'fvar)
-										(line-gen2 "mov rbx, qword [Lprim"(number->string (lookup-address (cadr var) (unbox global-table))) "] ;take pointer from global table")
-									
-										(line-gen2 "mov qword [rbx], rax"))
-								)
-							(line-gen2 "mov rax, Lcons1")
-					))))
+	 				 (line-gen2 "mov qword [rbp+(4+" (number->string (caddr var)) ")*8] ,rax"))) 
+				      ((eq? var-tag 'bvar)
+					(string-append
+				   	  (line-gen2 "mov rbx, qword [rbp+2*8] ;env")
+		 			  (line-gen2 "mov rbx, qword [rbx+" (number->string (caddr var)) "*8] ; env[maj]")
+					  (line-gen2 "mov rbx, qword [rbx+" (number->string (cadddr var)) "*8] ; env[maj][min]")
+					  (line-gen2 "mov qword [rbx], rax")))
+				      ((eq? var-tag 'fvar)
+					 (line-gen2 "mov rbx, qword [Lprim"(number->string (lookup-address (cadr var) (unbox global-table))) "] ;take pointer from global table")				
+				      (line-gen2 "mov qword [rbx], rax")))
+				(line-gen2 "mov rax, Lcons1")))))
 					
 (define code-gen-box
 	(lambda (pe maj)
 			(let* (	 (var (cadr pe))
-						(var-tag (car var)))
-					(string-append
-							(code-gen var maj)
-							(line-gen2 "mov rbx, rax; // save code-gen ret")
-							(line-gen2 "push rbx")
-							(line-gen2 "mov rdi, 8")
-							(line-gen2 "call malloc")
-							(line-gen2 "pop rbx")
-							(line-gen2 "mov qword [rax], rbx")
-					))))
+				 (var-tag (car var)))
+		          (string-append
+				(code-gen var maj)
+				(line-gen2 "mov rbx, rax; // save code-gen ret")
+				(line-gen2 "push rbx")
+				(line-gen2 "mov rdi, 8")
+				(line-gen2 "call malloc")
+				(line-gen2 "pop rbx")
+				(line-gen2 "mov qword [rax], rbx")))))
 					
 (define code-gen-define
 	(lambda (pe maj)
-			(let* (	 (fvar (cadr pe))
-						(var (cadr fvar))
-						(expr (caddr pe))
-						(fvar-address (lookup-address var (unbox global-table))))
+			(let* (	(fvar (cadr pe))
+				(var (cadr fvar))
+				(expr (caddr pe))
+				(fvar-address (lookup-address var (unbox global-table))))
 					(string-append
 							(code-gen expr maj)
 							(line-gen2 "mov qword [Lprim"(number->string fvar-address)"] ,rax")
-							(line-gen2 "mov rax, Lcons1")
-					))))
+							(line-gen2 "mov rax, Lcons1")))))
 		
 (define code-gen-lambda-opt
-		(lambda (pe maj)
-			(let ((args (cadr pe))
+	(lambda (pe maj)
+		(let (    (args (cadr pe))
 			  (opt (caddr pe))
 			  (body (cadddr pe))
 			  (label-copy-prev-env-loop (string-append "L_loop_copy_prev_env_" (fetch-label-and-inc)))
@@ -2892,7 +2853,7 @@
 				(line-gen2 "mov rbx, Lcons2")
 				(line-gen2 "cmp arg_count, "(number->string (length args)))
 				(line-gen2 "je " label-make-opt-list-exit)
-				;(line-gen2 "jl " label-wrong-arity)
+				
 
 				
 				(line-gen2 "mov rcx, arg_count")
@@ -2916,13 +2877,12 @@
 				(code-gen body (add1 maj))
 				(line-gen2 "leave")
 				(line-gen2 "ret")
-				(gen-line1 label-closure_exit ":")
-			))))
+				(gen-line1 label-closure_exit ":")))))
 
 (define code-gen-lambda-simple
 	(lambda (pe maj)
 		(let (	  (args (cadr pe))
-							(body (caddr pe))
+	      		  (body (caddr pe))
 			  (label-copy-prev-env-loop (string-append "L_loop_copy_prev_env_" (fetch-label-and-inc)))
 			  (label-copy-prev-env-exit-loop (string-append "L_exit_loop_copy_prev_env_" (fetch-label-and-inc)))
 			  (label-copy-params-loop (string-append "L_loop_copy_params_" (fetch-label-and-inc)))
@@ -2994,9 +2954,8 @@
 				(line-gen2 "mov rbp, rsp")
 				(code-gen body (add1 maj))
 				(line-gen2 "leave")
-								(line-gen2 "ret")
-				(gen-line1 label-closure_exit ":")
-			))))
+				(line-gen2 "ret")
+				(gen-line1 label-closure_exit ":")))))
 			
 ; ========================================================================================================
 ; ============================================ primitives  ===============================================
@@ -3042,20 +3001,18 @@
 			(code-gen-make-string)
 			(code-gen-make-vector)
 			(code-gen-vector) 
-			(code-gen-apply) ;TODO - not working
+			(code-gen-apply) 
 			(code-gen-symbol->string)
-			(code-gen-string->symbol) ;TODO
+			(code-gen-string->symbol) 
 			(code-gen->)	
-			
-                    (code-gen-<)
-                    (code-gen-=)
+                    	(code-gen-<)
+                    	(code-gen-=)
 		)))
 		
 (define code-gen-string->symbol
 	(lambda ()
 		(let 	(       (label-make-string->symbol-clos "L_make_stringtosymbol_clos_")
 				(label-string->symbol-body "L_make_stringtosymbol_body")
-				
 				(label-length-params-loop "L_length_params_loop")
 				(label-length-params-loop-exit "L_length_params_loop_exit")
 				(label-CDR-loop "L_CDR_loop")
@@ -3138,7 +3095,6 @@
 	(lambda ()
 		(let 	(       (label-make-=-clos "L_make_EQ_clos_")
 				(label-=-body "L_make_EQ_body")
-				
 				(label-length-params-loop "L_length_params_loop")
 				(label-length-params-loop-exit "L_length_params_loop_exit")
 				(label-CDR-loop "L_CDR_loop")
@@ -3269,7 +3225,6 @@
 	(lambda ()
 		(let 	(       (label-make-<-clos "L_make_LT_clos_")
 				(label-<-body "L_make_LT_body")
-				
 				(label-length-params-loop "L_length_params_loop")
 				(label-length-params-loop-exit "L_length_params_loop_exit")
 				(label-CDR-loop "L_CDR_loop")
@@ -3530,7 +3485,7 @@
 		
 (define code-gen-apply
 	(lambda ()
-		(let 	((label-make-apply-clos "L_make_apply_clos_")
+		(let 	(	(label-make-apply-clos "L_make_apply_clos_")
 				(label-apply-body "L_make_apply_body")
 				(label-length-params-loop "L_length_params_loop")
 				(label-length-params-loop-exit "L_length_params_loop_exit")
@@ -3606,21 +3561,12 @@
 							(line-gen2 "mov qword [Lprim" (number->string (lookup-address 'apply (unbox global-table))) "] , rax" )))))
 
 
-
-
-
-
-
-
-
-
-
 (define code-gen-vector
 	(lambda ()
-			(let ((label-vector-clos "L_vector_clos")
-						(label-vector-body "L_vector_body")
-						(label-vector-push-args-loop "L_vector_push_args_loop")
-						(label-vector-push-args-exit "L_vector_push_args_loop_exit"))
+			(let (	(label-vector-clos "L_vector_clos")
+				(label-vector-body "L_vector_body")
+				(label-vector-push-args-loop "L_vector_push_args_loop")
+				(label-vector-push-args-exit "L_vector_push_args_loop_exit"))
 					(string-append
 							(line-gen2 "jmp " label-vector-clos )
 							(gen-line1 label-vector-body ":")
@@ -3661,19 +3607,16 @@
 							(line-gen2 "MAKE_LITERAL_CLOSURE rax, start_of_data, " label-vector-body)
 							(gen-newline)
 							(line-gen2 "mov qword [Lprim" (number->string (lookup-address 'vector (unbox global-table))) "] , rax" )
-
-							
-							
 							))))
 
 (define code-gen-make-vector
 	(lambda ()
-			(let ((label-make-vector-clos "L_make_vector_clos")
-						(label-make-vector-body "L_make_vector_body")
-						(label-make-vector-check-one-arg "L_make_vector_check_one_arg")
-						(label-make-vector-take-n "L_make_vector_take_n")
-						(label-make-vector-loop "L_make_vector_loop")
-						(label-make-vector-loop-exit "L_make_vector_loop_exit"))
+			(let (	(label-make-vector-clos "L_make_vector_clos")
+				(label-make-vector-body "L_make_vector_body")
+				(label-make-vector-check-one-arg "L_make_vector_check_one_arg")
+				(label-make-vector-take-n "L_make_vector_take_n")
+				(label-make-vector-loop "L_make_vector_loop")
+				(label-make-vector-loop-exit "L_make_vector_loop_exit"))
 					(string-append
 							(line-gen2 "jmp " label-make-vector-clos )
 							(gen-line1 label-make-vector-body ":")
@@ -3723,12 +3666,12 @@
 
 (define code-gen-make-string
 	(lambda ()
-			(let ((label-make-string-clos "L_make_string_clos")
-						(label-make-string-body "L_make_string_body")
-						(label-make-string-check-one-arg "L_make_string_check_one_arg")
-						(label-make-string-take-n "L_make_string_take_n")
-						(label-make-string-loop "L_make_string_loop")
-						(label-make-string-loop-exit "L_make_string_loop_exit"))
+			(let (	(label-make-string-clos "L_make_string_clos")
+				(label-make-string-body "L_make_string_body")
+				(label-make-string-check-one-arg "L_make_string_check_one_arg")
+				(label-make-string-take-n "L_make_string_take_n")
+				(label-make-string-loop "L_make_string_loop")
+				(label-make-string-loop-exit "L_make_string_loop_exit"))
 					(string-append
 							(line-gen2 "jmp " label-make-string-clos )
 							(gen-line1 label-make-string-body ":")
@@ -3796,16 +3739,14 @@
 					
 (define code-gen-equal-bin
 	(lambda ()
-			(let (	  
-						(label-make-equal-bin-clos "L_make_equal_bin_clos")
-						(label-equal-bin-body "L_make_equal_bin_body")
-						(label-take-first-fraction-parts "L_take_first_fraction_parts_equal")
-						(label-check-second-fraction "L_check_second_fraction_equal")
-						(label-take-second-fraction-parts "L_take_second_fraction_parts_equal")
-						(label-equal-fraction "L_equal_fraction")
-						(label-ans-is-true "L_ans_is_true_equal_bin")
-						(label-end-equal-bin "L_end_equal_bin")
-						)
+			(let (	(label-make-equal-bin-clos "L_make_equal_bin_clos")
+				(label-equal-bin-body "L_make_equal_bin_body")
+				(label-take-first-fraction-parts "L_take_first_fraction_parts_equal")
+				(label-check-second-fraction "L_check_second_fraction_equal")
+				(label-take-second-fraction-parts "L_take_second_fraction_parts_equal")
+				(label-equal-fraction "L_equal_fraction")
+				(label-ans-is-true "L_ans_is_true_equal_bin")
+				(label-end-equal-bin "L_end_equal_bin"))
 					(string-append
 						   
 							(line-gen2 "jmp " label-make-equal-bin-clos)
@@ -3902,7 +3843,7 @@
 							(line-gen2 "call malloc")
 							(line-gen2 "MAKE_LITERAL_CLOSURE rax, start_of_data, " label-equal-bin-body)
 							(gen-newline)
-							;(line-gen2 "mov  rax , qword [rax]" )
+							
 							(line-gen2 "mov qword [Lprim" (number->string (lookup-address 'equal-bin (unbox global-table))) "] , rax" )
 
 							
@@ -3910,16 +3851,14 @@
 
 (define code-gen-lt-bin
 	(lambda ()
-			(let (	  
-						
-						(label-make-lt-bin-clos "L_make_lt_bin_clos")
-						(label-lt-bin-body "L_make_lt_bin_body")
-						(label-take-first-fraction-parts "L_take_first_fraction_parts_lt")
-						(label-check-second-fraction "L_check_second_fraction_lt")
-						(label-take-second-fraction-parts "L_take_second_fraction_parts_lt")
-						(label-lt-fraction "L_lt_fraction")
-						(label-ans-is-true "L_ans_is_true_lt_bin")
-						(label-end-lt-bin "L_end_lt_bin")
+		(let (	(label-make-lt-bin-clos "L_make_lt_bin_clos")
+			(label-lt-bin-body "L_make_lt_bin_body")
+			(label-take-first-fraction-parts "L_take_first_fraction_parts_lt")
+			(label-check-second-fraction "L_check_second_fraction_lt")
+			(label-take-second-fraction-parts "L_take_second_fraction_parts_lt")
+			(label-lt-fraction "L_lt_fraction")
+			(label-ans-is-true "L_ans_is_true_lt_bin")
+			(label-end-lt-bin "L_end_lt_bin")
 						)
 					(string-append
 							
@@ -4015,7 +3954,7 @@
 							(line-gen2 "call malloc")
 							(line-gen2 "MAKE_LITERAL_CLOSURE rax, start_of_data, " label-lt-bin-body)
 							(gen-newline)
-							;(line-gen2 "mov  rax , qword [rax]" )
+							
 							(line-gen2 "mov qword [Lprim" (number->string (lookup-address 'lt-bin (unbox global-table))) "] , rax" )
 
 							
@@ -4023,14 +3962,14 @@
 
 (define code-gen-gt-bin
 	(lambda ()
-			(let (	  (label-make-gt-bin-clos "L_make_gt_bin_clos")
-						(label-gt-bin-body "L_make_gt_bin_body")
-						(label-take-first-fraction-parts "L_take_first_fraction_parts_gt")
-						(label-check-second-fraction "L_check_second_fraction_gt")
-						(label-take-second-fraction-parts "L_take_second_fraction_parts_gt")
-						(label-gt-fraction "L_gt_fraction")
-						(label-ans-is-true "L_ans_is_true_gt_bin")
-						(label-end-gt-bin "L_end_gt_bin"))
+			(let (	(label-make-gt-bin-clos "L_make_gt_bin_clos")
+				(label-gt-bin-body "L_make_gt_bin_body")
+				(label-take-first-fraction-parts "L_take_first_fraction_parts_gt")
+				(label-check-second-fraction "L_check_second_fraction_gt")
+				(label-take-second-fraction-parts "L_take_second_fraction_parts_gt")
+				(label-gt-fraction "L_gt_fraction")
+				(label-ans-is-true "L_ans_is_true_gt_bin")
+				(label-end-gt-bin "L_end_gt_bin"))
 					(string-append
 							
 							(line-gen2 "jmp " label-make-gt-bin-clos)
@@ -4124,7 +4063,7 @@
 							(line-gen2 "call malloc")
 							(line-gen2 "MAKE_LITERAL_CLOSURE rax, start_of_data, " label-gt-bin-body)
 							(gen-newline)
-							;(line-gen2 "mov  rax , qword [rax]" )
+							
 							(line-gen2 "mov qword [Lprim" (number->string (lookup-address 'gt-bin (unbox global-table))) "] , rax" )
 
 							
@@ -4132,11 +4071,9 @@
 
 (define code-gen-val-eq
 	(lambda ()
-			(let (	  
-						
-						(label-make-val-eq-clos "L_make_val_eq_clos")
-						(label-val-eq-body "L_make_val_eq_body")
-						(label-val-eq-exit "L_val_eq_exit")
+		(let (	(label-make-val-eq-clos "L_make_val_eq_clos")
+			(label-val-eq-body "L_make_val_eq_body")
+		       	(label-val-eq-exit "L_val_eq_exit")
 						)
 					(string-append
 							(line-gen2 "jmp " label-make-val-eq-clos )
@@ -4169,7 +4106,7 @@
 							(line-gen2 "call malloc")
 							(line-gen2 "MAKE_LITERAL_CLOSURE rax, start_of_data, " label-val-eq-body)
 							(gen-newline)
-							;(line-gen2 "mov  rax , qword [rax]" )
+							
 							(line-gen2 "mov qword [Lprim" (number->string (lookup-address 'val-eq? (unbox global-table))) "] , rax" )
 
 							
@@ -4177,9 +4114,9 @@
 
 (define code-gen-addr-eq
 	(lambda ()
-			(let (	  (label-make-addr-eq-clos "L_make_addr_eq_clos")
-						(label-addr-eq-body "L_make_addr_eq_body")
-						(label-addr-eq-exit "L_addr_eq_exit"))
+		(let (	(label-make-addr-eq-clos "L_make_addr_eq_clos")
+			(label-addr-eq-body "L_make_addr_eq_body")
+			(label-addr-eq-exit "L_addr_eq_exit"))
 					(string-append
 							(line-gen2 "jmp " label-make-addr-eq-clos )
 							(gen-line1 label-addr-eq-body ":")
@@ -4209,7 +4146,7 @@
 							(line-gen2 "call malloc")
 							(line-gen2 "MAKE_LITERAL_CLOSURE rax, start_of_data, " label-addr-eq-body)
 							(gen-newline)
-						   ; (line-gen2 "mov  rax , qword [rax]" )
+						   
 							(line-gen2 "mov qword [Lprim" (number->string (lookup-address 'addr-eq? (unbox global-table))) "] , rax" )
 
 							
@@ -4217,8 +4154,8 @@
 
 (define code-gen-remainder
 	(lambda ()
-			(let (	  (label-make-remainder-clos "L_make_remainder_clos_")
-						(label-remainder-body "L_make_remainder_body"))
+		(let (	(label-make-remainder-clos "L_make_remainder_clos_")
+			(label-remainder-body "L_make_remainder_body"))
 					(string-append
 							(line-gen2 "jmp " label-make-remainder-clos )
 							(gen-line1 label-remainder-body ":")
@@ -4275,7 +4212,7 @@
 							(line-gen2 "call malloc")
 							(line-gen2 "MAKE_LITERAL_CLOSURE rax, start_of_data, " label-remainder-body)
 							(gen-newline)
-							;(line-gen2 "mov  rax , qword [rax]" )
+							
 							(line-gen2 "mov qword [Lprim" (number->string (lookup-address 'remainder (unbox global-table))) "] , rax" )
 
 							
@@ -4283,12 +4220,10 @@
 
 (define code-gen-denominator
 	(lambda ()
-			(let (	  
-						(label-make-denominator-clos "L_make_denominator_clos_")
-						(label-denominator-body "L_make_denominator_body")
-						(label-fraction-denominator "L_fraction_denominator")
-						(label-denominator-exit "L_denominator_exit")
-						)
+			(let (	(label-make-denominator-clos "L_make_denominator_clos_")
+				(label-denominator-body "L_make_denominator_body")
+				(label-fraction-denominator "L_fraction_denominator")
+				(label-denominator-exit "L_denominator_exit"))
 					(string-append
 							(line-gen2 "jmp " label-make-denominator-clos )
 							(gen-line1 label-denominator-body ":")
@@ -4350,7 +4285,7 @@
 							(line-gen2 "call malloc")
 							(line-gen2 "MAKE_LITERAL_CLOSURE rax, start_of_data, " label-denominator-body)
 							(gen-newline)
-							;(line-gen2 "mov  rax , qword [rax]" )
+							
 							(line-gen2 "mov qword [Lprim" (number->string (lookup-address 'denominator (unbox global-table))) "] , rax" )
 
 							
@@ -4358,10 +4293,10 @@
 
 (define code-gen-numerator
 	(lambda ()
-			(let (	  (label-make-numerator-clos "L_make_numerator_clos_")
-						(label-numerator-body "L_make_numerator_body")
-						(label-fraction-numerator "L_fraction_numerator")
-						(label-numerator-exit "L_numerator_exit"))
+			(let (	(label-make-numerator-clos "L_make_numerator_clos_")
+				(label-numerator-body "L_make_numerator_body")
+				(label-fraction-numerator "L_fraction_numerator")
+				(label-numerator-exit "L_numerator_exit"))
 					(string-append
 							(line-gen2 "jmp " label-make-numerator-clos )
 							(gen-line1 label-numerator-body ":")
@@ -4415,7 +4350,7 @@
 							(line-gen2 "call malloc")
 							(line-gen2 "MAKE_LITERAL_CLOSURE rax, start_of_data, " label-numerator-body)
 							(gen-newline)
-						   ; (line-gen2 "mov  rax , qword [rax]" )
+						   
 							(line-gen2 "mov qword [Lprim" (number->string (lookup-address 'numerator (unbox global-table))) "] , rax" )
 
 							
@@ -4423,8 +4358,8 @@
 
 (define code-gen-vector-set!
 	(lambda ()
-			(let ((label-make-vector-set!-clos "L_make_vector_set_clos_")
-						(label-vector-set!-body "L_make_vector_set_body"))
+		(let (	(label-make-vector-set!-clos "L_make_vector_set_clos_")
+			(label-vector-set!-body "L_make_vector_set_body"))
 					(string-append
 							(line-gen2 "jmp " label-make-vector-set!-clos )
 							(gen-line1 label-vector-set!-body ":")
@@ -4473,14 +4408,14 @@
 							(line-gen2 "call malloc")
 							(line-gen2 "MAKE_LITERAL_CLOSURE rax, start_of_data, " label-vector-set!-body)
 							(gen-newline)
-							;(line-gen2 "mov  rax , qword [rax]" )
+							
 							(line-gen2 "mov qword [Lprim" (number->string (lookup-address 'vector-set! (unbox global-table))) "] , rax" )
 							))))
 
 (define code-gen-vector-ref
 	(lambda ()
-			(let (	  (label-make-vector-ref-clos "L_make_vector_ref_clos_")
-						(label-vector-ref-body "L_make_vector_ref_body"))
+			(let (	(label-make-vector-ref-clos "L_make_vector_ref_clos_")
+				(label-vector-ref-body "L_make_vector_ref_body"))
 					(string-append
 							(line-gen2 "jmp " label-make-vector-ref-clos)
 							(gen-line1 label-vector-ref-body ":")
@@ -4531,7 +4466,7 @@
 							(line-gen2 "call malloc")
 							(line-gen2 "MAKE_LITERAL_CLOSURE rax, start_of_data, " label-vector-ref-body)
 							(gen-newline)
-							;(line-gen2 "mov  rax , qword [rax]")
+							
 							(line-gen2 "mov qword [Lprim" (number->string (lookup-address 'vector-ref (unbox global-table))) "] , rax" )
 
 							
@@ -4539,8 +4474,8 @@
 
 (define code-gen-vector-length
 	(lambda ()
-			(let (	  (label-make-vector-length-clos "L_make_vector_length_clos_")
-						(label-vector-length-body "L_make_vector_length_body"))
+			(let (	(label-make-vector-length-clos "L_make_vector_length_clos_")
+				(label-vector-length-body "L_make_vector_length_body"))
 					(string-append
 							(line-gen2 "jmp " label-make-vector-length-clos )
 							(gen-line1 label-vector-length-body ":")
@@ -4576,17 +4511,14 @@
 							(line-gen2 "call malloc")
 							(line-gen2 "MAKE_LITERAL_CLOSURE rax, start_of_data, " label-vector-length-body)
 							(gen-newline)
-							;(line-gen2 "mov  rax , qword [rax]" )
-							(line-gen2 "mov qword [Lprim" (number->string (lookup-address 'vector-length (unbox global-table))) "] , rax" )
-
 							
+							(line-gen2 "mov qword [Lprim" (number->string (lookup-address 'vector-length (unbox global-table))) "] , rax" )			
 							))))
 
 (define code-gen-string-set!
 	(lambda ()
-			(let (	  (label-make-string-set!-clos "L_make_string_set_clos_")
-						(label-string-set!-body "L_make_string_set_body")
-						)
+		(let (	(label-make-string-set!-clos "L_make_string_set_clos_")
+			(label-string-set!-body "L_make_string_set_body"))
 					(string-append
 							(line-gen2 "jmp " label-make-string-set!-clos )
 							(gen-line1 label-string-set!-body ":")
@@ -4644,7 +4576,7 @@
 							;;; MAKE_LITERAL_CLOSURE target, env, code
 							(line-gen2 "MAKE_LITERAL_CLOSURE rax, start_of_data, " label-string-set!-body)
 							(gen-newline)
-							;(line-gen2 "mov  rax , qword [rax]" )
+							
 							(line-gen2 "mov qword [Lprim" (number->string (lookup-address 'string-set! (unbox global-table))) "] , rax" )
 
 							
@@ -4652,8 +4584,8 @@
 
 (define code-gen-string-ref
 	(lambda ()
-			(let ((label-make-string-ref-clos "L_make_string_ref_clos_")
-						(label-string-ref-body "L_make_string_ref_body"))
+		(let (	(label-make-string-ref-clos "L_make_string_ref_clos_")
+			(label-string-ref-body "L_make_string_ref_body"))
 					(string-append
 							(line-gen2 "jmp " label-make-string-ref-clos)
 							(gen-line1 label-string-ref-body ":")
@@ -4713,7 +4645,6 @@
 							(line-gen2 "MAKE_LITERAL_CLOSURE rax, start_of_data, " label-string-ref-body)
 							(gen-newline)
 							
-							;(line-gen2 "mov  rax , qword [rax]" )
 							(line-gen2 "mov qword [Lprim" (number->string (lookup-address 'string-ref (unbox global-table))) "] , rax" )
 
 							
@@ -4721,9 +4652,8 @@
 
 (define code-gen-string-length
 	(lambda ()
-			(let (	  (label-make-string-length-clos "L_make_string_length_clos_")
-						(label-string-length-body "L_make_string_length_body")
-						)
+		(let (	(label-make-string-length-clos "L_make_string_length_clos_")
+			(label-string-length-body "L_make_string_length_body"))
 					(string-append
 							(line-gen2 "jmp " label-make-string-length-clos )
 							(gen-line1 label-string-length-body ":")
@@ -4760,7 +4690,7 @@
 							(line-gen2 "MAKE_LITERAL_CLOSURE rax, start_of_data, " label-string-length-body)
 							(gen-newline)
 							
-							;(line-gen2 "mov  rax , qword [rax]" )
+							
 							(line-gen2 "mov qword [Lprim" (number->string (lookup-address 'string-length (unbox global-table))) "] , rax" )
 
 							
@@ -4768,8 +4698,8 @@
 
 (define code-gen-car
 	(lambda ()
-			(let (	  (label-make-car-clos "L_make_car_clos_")
-						(label-car-body "L_make_car_body"))
+		(let (	(label-make-car-clos "L_make_car_clos_")
+			(label-car-body "L_make_car_body"))
 				(string-append
 							(line-gen2 "jmp " label-make-car-clos )
 							(gen-line1 label-car-body ":")
@@ -4794,15 +4724,14 @@
 							(line-gen2 "MAKE_LITERAL_CLOSURE rax, start_of_data, " label-car-body)
 							(gen-newline)
 							
-							;(line-gen2 "mov  rax , qword [rax]" )
 							(line-gen2 "mov qword [Lprim" (number->string (lookup-address 'car (unbox global-table))) "] , rax" )
 							
 							))))
 							
 (define code-gen-cdr
 	(lambda ()
-			(let (	  (label-make-cdr-clos "L_make_cdr_clos_")
-						(label-cdr-body "L_make_cdr_body"))
+			(let (	(label-make-cdr-clos "L_make_cdr_clos_")
+				(label-cdr-body "L_make_cdr_body"))
 				(string-append
 							(line-gen2 "jmp " label-make-cdr-clos )
 							(gen-line1 label-cdr-body ":")
@@ -4826,16 +4755,14 @@
 							;;; MAKE_LITERAL_CLOSURE target, env, code
 							(line-gen2 "MAKE_LITERAL_CLOSURE rax, start_of_data, " label-cdr-body)
 							(gen-newline)
-							
-						   ; (line-gen2 "mov  rax , qword [rax]" )
 							(line-gen2 "mov qword [Lprim" (number->string (lookup-address 'cdr (unbox global-table))) "] , rax" )
 							
 							))))
 
 (define code-gen-cons
 	(lambda ()
-			(let ((label-make-cons-clos "L_make_cons_clos")
-						(label-cons-body "L_make_cons_body"))
+			(let (  (label-make-cons-clos "L_make_cons_clos")
+				(label-cons-body "L_make_cons_body"))
 					(string-append
 							(line-gen2 "jmp " label-make-cons-clos )
 							(gen-line1 label-cons-body ":")
@@ -4861,19 +4788,18 @@
 							(line-gen2 "MAKE_LITERAL_CLOSURE rax, start_of_data, " label-cons-body)
 							(gen-newline)
 							
-							;(line-gen2 "mov  rax , qword [rax]" )
 							(line-gen2 "mov qword [Lprim" (number->string (lookup-address 'cons (unbox global-table))) "] , rax" )))))
 
 (define code-gen-plus-bin
 	(lambda ()
-			(let ((label-make-plus-bin-clos "L_make_plus_bin_clos")
-						(label-plus-bin-body "L_make_plus_bin_body")
-						(label-take-first-fraction-parts "L_take_first_fraction_parts_plus")
-						(label-check-second-fraction "L_check_second_fraction_plus")
-						(label-take-second-fraction-parts "L_take_second_fraction_parts_plus")
-						(label-add-fraction "L_add_fraction")
-						(label-result-is-integer "L_result_is_integer_plus")
-						(label-plus-bin-end "L_plus_bin_end"))
+			(let (	(label-make-plus-bin-clos "L_make_plus_bin_clos")
+				(label-plus-bin-body "L_make_plus_bin_body")
+				(label-take-first-fraction-parts "L_take_first_fraction_parts_plus")
+				(label-check-second-fraction "L_check_second_fraction_plus")
+				(label-take-second-fraction-parts "L_take_second_fraction_parts_plus")
+				(label-add-fraction "L_add_fraction")
+				(label-result-is-integer "L_result_is_integer_plus")
+				(label-plus-bin-end "L_plus_bin_end"))
 					(string-append
 
 							(line-gen2 "jmp " label-make-plus-bin-clos)
@@ -5051,20 +4977,19 @@
 							(line-gen2 "call malloc")
 							(line-gen2 "MAKE_LITERAL_CLOSURE rax, start_of_data, " label-plus-bin-body)
 							(gen-newline)
-							;(line-gen2 "mov  rax , qword [rax]" )
 							(line-gen2 "mov qword [Lprim" (number->string (lookup-address 'plus-bin (unbox global-table))) "] , rax" )
 							))))
 
 (define code-gen-minus-bin
 	(lambda ()
-			(let ((label-make-plus-bin-clos "L_make_minus_bin_clos")
-						(label-plus-bin-body "L_make_minus_bin_body")
-						(label-take-first-fraction-parts "L_take_first_fraction_parts_minus")
-						(label-check-second-fraction "L_check_second_fraction_minus")
-						(label-take-second-fraction-parts "L_take_second_fraction_parts_minus")
-						(label-add-fraction "L_sub_fraction")
-						(label-result-is-integer "L_result_is_integer_minus")
-						(label-plus-bin-end "L_minus_bin_end"))
+			(let (	(label-make-plus-bin-clos "L_make_minus_bin_clos")
+				(label-plus-bin-body "L_make_minus_bin_body")
+				(label-take-first-fraction-parts "L_take_first_fraction_parts_minus")
+				(label-check-second-fraction "L_check_second_fraction_minus")
+				(label-take-second-fraction-parts "L_take_second_fraction_parts_minus")
+				(label-add-fraction "L_sub_fraction")
+				(label-result-is-integer "L_result_is_integer_minus")
+				(label-plus-bin-end "L_minus_bin_end"))
 					(string-append
 
 							(line-gen2 "jmp " label-make-plus-bin-clos)
@@ -5242,15 +5167,15 @@
 							(line-gen2 "call malloc")
 							(line-gen2 "MAKE_LITERAL_CLOSURE rax, start_of_data, " label-plus-bin-body)
 							(gen-newline)
-							;(line-gen2 "mov  rax , qword [rax]" )
+							
 							(line-gen2 "mov qword [Lprim" (number->string (lookup-address 'minus-bin (unbox global-table))) "] , rax" )
 							))))
 							
 (define code-gen-set-car!
 	(lambda ()
-			(let ((label-make-set-car!-clos "L_make_set_car_clos")
-						(label-set-car!-body "L_make_set_car_body")
-						(label-set-car!-exit "L_set_car_exit")) 
+			(let (	(label-make-set-car!-clos "L_make_set_car_clos")
+				(label-set-car!-body "L_make_set_car_body")
+				(label-set-car!-exit "L_set_car_exit")) 
 					(string-append
 							(line-gen2 "jmp " label-make-set-car!-clos)
 							(gen-line1 label-set-car!-body ":")
@@ -5282,14 +5207,13 @@
 							(line-gen2 "MAKE_LITERAL_CLOSURE rax, start_of_data, " label-set-car!-body)
 							(gen-newline)
 							
-							;(line-gen2 "mov  rax , qword [rax]" )
 							(line-gen2 "mov qword [Lprim" (number->string (lookup-address 'set-car! (unbox global-table))) "] , rax" )))))
 							
 (define code-gen-set-cdr!
 	(lambda ()
-			(let (	  (label-make-set-cdr!-clos "L_make_set_cdr_clos")
-						(label-set-cdr!-body "L_make_set_cdr_body")
-						(label-set-cdr!-exit "L_set_cdr_exit")) 
+			(let (  (label-make-set-cdr!-clos "L_make_set_cdr_clos")
+				(label-set-cdr!-body "L_make_set_cdr_body")
+				(label-set-cdr!-exit "L_set_cdr_exit")) 
 					(string-append
 							(line-gen2 "jmp " label-make-set-cdr!-clos)
 							(gen-line1 label-set-cdr!-body ":")
@@ -5326,14 +5250,14 @@
 							
 (define code-gen-mul-bin
 	(lambda ()
-			(let	((label-make-mul-bin-clos "L_make_mul_bin_clos")
-					(label-mul-bin-body "L_make_mul_bin_body")
-					(label-take-first-fraction-parts "L_take_first_fraction_parts_mul")
-					(label-check-second-fraction "L_check_second_fraction_mul")
-					(label-take-second-fraction-parts "L_take_second_fraction_parts_mul")
-					(label-mul-fraction "L_mul_fraction")
-					(label-result-is-integer "L_result_is_integer_mul")
-					(label-mul-bin-end "L_mul_bin_end"))
+			(let(	(label-make-mul-bin-clos "L_make_mul_bin_clos")
+				(label-mul-bin-body "L_make_mul_bin_body")
+				(label-take-first-fraction-parts "L_take_first_fraction_parts_mul")
+				(label-check-second-fraction "L_check_second_fraction_mul")
+				(label-take-second-fraction-parts "L_take_second_fraction_parts_mul")
+				(label-mul-fraction "L_mul_fraction")
+				(label-result-is-integer "L_result_is_integer_mul")
+				(label-mul-bin-end "L_mul_bin_end"))
 						(string-append
 							(line-gen2 "jmp " label-make-mul-bin-clos)
 							(gen-line1 label-mul-bin-body ":")
@@ -5484,14 +5408,14 @@
 
 (define code-gen-div-bin
 	(lambda ()
-			(let 	((label-make-div-bin-clos "L_make_div_bin_clos")
-					(label-div-bin-body "L_make_div_bin_body")
-					(label-take-first-fraction-parts "L_take_first_fraction_parts_div")
-					(label-check-second-fraction "L_check_second_fraction_div")
-					(label-take-second-fraction-parts "L_take_second_fraction_parts_div")
-					(label-div-fraction "L_div_fraction")
-					(label-result-is-integer "L_result_is_integer_div")
-					(label-div-bin-end "L_div_bin_end"))
+			(let (	(label-make-div-bin-clos "L_make_div_bin_clos")
+				(label-div-bin-body "L_make_div_bin_body")
+				(label-take-first-fraction-parts "L_take_first_fraction_parts_div")
+				(label-check-second-fraction "L_check_second_fraction_div")
+				(label-take-second-fraction-parts "L_take_second_fraction_parts_div")
+				(label-div-fraction "L_div_fraction")
+				(label-result-is-integer "L_result_is_integer_div")
+				(label-div-bin-end "L_div_bin_end"))
 						(string-append
 							; rdx & rsi - first number parts
 							; r8 & r9 - second number parts
@@ -5574,15 +5498,6 @@
 							(line-gen2 "jg L_div_sign_fix")
 							(line-gen2 "neg r11")
 							(line-gen2 "neg r12")
-							; (line-gen2 "cqo")
-							; (line-gen2 "imul r11")
-							; (line-gen2 "mov r11, rax")
-							; (line-gen2 "mov rax, -1")
-							; (line-gen2 "cqo")
-							; (line-gen2 "imul r12")
-							; (line-gen2 "mov r12, rax")
-
-
 							(gen-line1 "L_div_sign_fix:")
 							(line-gen2 "mov rax, r11")
 							(line-gen2 "mov rdx, 0")
@@ -5632,10 +5547,10 @@
 
 (define code-gen-boolean?
 	(lambda ()
-			(let	((label-make-boolean?-clos "L_make_is_boolean_clos")
-					(label-boolean?-body "L_make_is_boolean_body")
-					(label-boolean?-exit "L_is_boolean_exit")
-					(label-boolean?-answer-is-true "L_is_boolean_ans_is_true")) 
+			(let(	(label-make-boolean?-clos "L_make_is_boolean_clos")
+				(label-boolean?-body "L_make_is_boolean_body")
+				(label-boolean?-exit "L_is_boolean_exit")
+				(label-boolean?-answer-is-true "L_is_boolean_ans_is_true")) 
 						(string-append
 							(line-gen2 "jmp " label-make-boolean?-clos )
 							(gen-line1 label-boolean?-body ":")
@@ -5665,10 +5580,10 @@
 
 (define code-gen-char?
 	(lambda ()
-			(let 	((label-char?-answer-is-true "L_is_char_ans_is_true")
-					(label-make-char?-clos "L_make_is_char_clos")
-					(label-char?-body "L_make_is_char_body")
-					(label-char?-exit "L_is_char_exit")) 
+			(let (	(label-char?-answer-is-true "L_is_char_ans_is_true")
+				(label-make-char?-clos "L_make_is_char_clos")
+				(label-char?-body "L_make_is_char_body")
+				(label-char?-exit "L_is_char_exit")) 
 						(string-append
 							(line-gen2 "jmp " label-make-char?-clos )
 							(gen-line1 label-char?-body ":")
@@ -5698,10 +5613,10 @@
 
 (define code-gen-integer?
 	(lambda ()
-			(let 	((label-integer?-answer-is-true "L_is_integer_ans_is_true")	
-					(label-make-integer?-clos "L_make_is_integer_clos")
-					(label-integer?-body "L_make_is_integer_body")
-					(label-integer?-exit "L_is_integer_exit")) 
+			(let (	(label-integer?-answer-is-true "L_is_integer_ans_is_true")	
+				(label-make-integer?-clos "L_make_is_integer_clos")
+				(label-integer?-body "L_make_is_integer_body")
+				(label-integer?-exit "L_is_integer_exit")) 
 						(string-append
 							(line-gen2 "jmp " label-make-integer?-clos )
 							(gen-line1 label-integer?-body ":")
@@ -5731,10 +5646,10 @@
 
 (define code-gen-pair?
 	(lambda ()
-			(let 	((label-pair?-answer-is-true "L_is_pair_ans_is_true")
-					(label-make-pair?-clos "L_make_is_pair_clos")
-					(label-pair?-body "L_make_is_pair_body")
-					(label-pair?-exit "L_is_pair_exit")) 
+			(let ( (label-pair?-answer-is-true "L_is_pair_ans_is_true")
+				(label-make-pair?-clos "L_make_is_pair_clos")
+				(label-pair?-body "L_make_is_pair_body")
+				(label-pair?-exit "L_is_pair_exit")) 
 					(string-append
 							(line-gen2 "jmp " label-make-pair?-clos )
 							(gen-line1 label-pair?-body ":")
@@ -5767,10 +5682,10 @@
 
 (define code-gen-procedure?
 	(lambda ()
-			(let 	((label-procedure?-answer-is-true "L_is_procedure_ans_is_true")
-					(label-make-procedure?-clos "L_make_is_procedure_clos")
-					(label-procedure?-body "L_make_is_procedure_body")
-					(label-procedure?-exit "L_is_procedure_exit")) 
+			(let (	(label-procedure?-answer-is-true "L_is_procedure_ans_is_true")
+				(label-make-procedure?-clos "L_make_is_procedure_clos")
+				(label-procedure?-body "L_make_is_procedure_body")
+				(label-procedure?-exit "L_is_procedure_exit")) 
 					(string-append
 							(line-gen2 "jmp " label-make-procedure?-clos )
 							(gen-line1 label-procedure?-body ":")
@@ -5800,10 +5715,10 @@
 
 (define code-gen-string?
 	(lambda ()
-				(let 	((label-string?-answer-is-true "L_is_string_ans_is_true")
-						(label-make-string?-clos "L_make_is_string_clos")
-						(label-string?-body "L_make_is_string_body")
-						(label-string?-exit "L_is_string_exit")) 
+		(let (	(label-string?-answer-is-true "L_is_string_ans_is_true")
+			(label-make-string?-clos "L_make_is_string_clos")
+			(label-string?-body "L_make_is_string_body")
+		        (label-string?-exit "L_is_string_exit")) 
 					(string-append
 							(line-gen2 "jmp " label-make-string?-clos )
 							(gen-line1 label-string?-body ":")
@@ -5833,10 +5748,10 @@
 
 (define code-gen-symbol?
 	(lambda ()
-			(let 	((label-symbol?-answer-is-true "L_is_symbol_ans_is_true")
-					(label-make-symbol?-clos "L_make_is_symbol_clos")
-					(label-symbol?-body "L_make_is_symbol_body")
-					(label-symbol?-exit "L_is_symbol_exit")) 
+		(let (	(label-symbol?-answer-is-true "L_is_symbol_ans_is_true")
+			(label-make-symbol?-clos "L_make_is_symbol_clos")
+			(label-symbol?-body "L_make_is_symbol_body")
+			(label-symbol?-exit "L_is_symbol_exit")) 
 						(string-append
 							(line-gen2 "jmp " label-make-symbol?-clos )
 							(gen-line1 label-symbol?-body ":")
@@ -5866,10 +5781,10 @@
 
 (define code-gen-vector?
 	(lambda ()
-			(let 	((label-vector?-answer-is-true "L_is_vector_ans_is_true")
-					(label-make-vector?-clos "L_make_is_vector_clos")
-					(label-vector?-body "L_make_is_vector_body")
-					(label-vector?-exit "L_is_vector_exit")) 
+		(let (	(label-vector?-answer-is-true "L_is_vector_ans_is_true")
+			(label-make-vector?-clos "L_make_is_vector_clos")
+			(label-vector?-body "L_make_is_vector_body")
+			(label-vector?-exit "L_is_vector_exit")) 
 						(string-append
 							(line-gen2 "jmp " label-make-vector?-clos )
 							(gen-line1 label-vector?-body ":")
@@ -5899,10 +5814,10 @@
 
 (define code-gen-fraction?
 	(lambda ()
-			(let 	((label-fraction?-answer-is-true "L_is_fraction_ans_is_true")
-					(label-make-fraction?-clos "L_make_is_fraction_clos")
-					(label-fraction?-body "L_make_is_fraction_body")
-					(label-fraction?-exit "L_is_fraction_exit")) 
+		(let (	(label-fraction?-answer-is-true "L_is_fraction_ans_is_true")
+			(label-make-fraction?-clos "L_make_is_fraction_clos")
+		        (label-fraction?-body "L_make_is_fraction_body")
+			(label-fraction?-exit "L_is_fraction_exit")) 
 					(string-append
 							(line-gen2 "jmp " label-make-fraction?-clos )
 							(gen-line1 label-fraction?-body ":")
@@ -5932,8 +5847,8 @@
 
 (define code-gen-char->integer
 	(lambda ()
-			(let 	((label-char->integer-clos "L_char_to_integer_clos")
-					(label-char->integer-body "L_char_to_integer_body"))
+		(let (	(label-char->integer-clos "L_char_to_integer_clos")
+			(label-char->integer-body "L_char_to_integer_body"))
 						(string-append
 							(line-gen2 "jmp " label-char->integer-clos )
 							(gen-line1 label-char->integer-body ":")
@@ -5967,65 +5882,63 @@
 
 (define code-gen-integer->char
 	(lambda ()
-			(let 	((label-integer->char-clos "L_integer_to_char_clos")
-					(label-integer->char-body "L_integer_to_char_body"))
-						(string-append
-							(line-gen2 "jmp " label-integer->char-clos )
-							(gen-line1 label-integer->char-body ":")
-							(line-gen2 "push rbp")
-							(line-gen2 "mov rbp, rsp")
-							(line-gen2 "cmp arg_count, 1")
-							(line-gen2 "jne L_wrong_arity")
-							(line-gen2 "mov rbx, A0")
-							(line-gen2 "mov rbx, qword [rbx]")
-							(line-gen2 "mov rcx, rbx")
-							(line-gen2 "TYPE rbx")
-							(line-gen2 "cmp rbx ,T_INTEGER")
-							(line-gen2 "jne L_incorrect_type")
-							(line-gen2 "push rcx")
-							(line-gen2 "mov rdi, 8")
-							(line-gen2 "call malloc")
-							(line-gen2 "pop rcx")
-							(line-gen2 "DATA rcx")
-							(line-gen2 "mov qword[rax], rcx")
-							(line-gen2 "shl qword[rax], 4")
-							(line-gen2 "or qword [rax], T_CHAR")
-							(line-gen2 "leave")
-							(line-gen2 "ret")
-							(gen-line1 label-integer->char-clos ":")
-							(line-gen2 "mov rdi, 16")
-							(line-gen2 "call malloc")
-							(line-gen2 "MAKE_LITERAL_CLOSURE rax, start_of_data, " label-integer->char-body)
-							(gen-newline)
-							(line-gen2 "mov qword [Lprim" (number->string (lookup-address 'integer->char (unbox global-table))) "] , rax" )
-							))))
+	  	(let (	(label-integer->char-clos "L_integer_to_char_clos")
+			(label-integer->char-body "L_integer_to_char_body"))
+			(string-append
+			 	(line-gen2 "jmp " label-integer->char-clos )
+				(gen-line1 label-integer->char-body ":")
+				(line-gen2 "push rbp")
+				(line-gen2 "mov rbp, rsp")
+				(line-gen2 "cmp arg_count, 1")
+				(line-gen2 "jne L_wrong_arity")
+				(line-gen2 "mov rbx, A0")
+				(line-gen2 "mov rbx, qword [rbx]")
+				(line-gen2 "mov rcx, rbx")
+				(line-gen2 "TYPE rbx")
+				(line-gen2 "cmp rbx ,T_INTEGER")
+				(line-gen2 "jne L_incorrect_type")
+				(line-gen2 "push rcx")
+				(line-gen2 "mov rdi, 8")
+				(line-gen2 "call malloc")
+				(line-gen2 "pop rcx")
+				(line-gen2 "DATA rcx")
+				(line-gen2 "mov qword[rax], rcx")
+				(line-gen2 "shl qword[rax], 4")
+				(line-gen2 "or qword [rax], T_CHAR")
+				(line-gen2 "leave")
+				(line-gen2 "ret")
+				(gen-line1 label-integer->char-clos ":")
+				(line-gen2 "mov rdi, 16")
+				(line-gen2 "call malloc")
+				(line-gen2 "MAKE_LITERAL_CLOSURE rax, start_of_data, " label-integer->char-body)
+				(gen-newline)
+				(line-gen2 "mov qword [Lprim" (number->string (lookup-address 'integer->char (unbox global-table))) "] , rax" )))))
 
 (define code-gen-symbol->string
 	(lambda ()
-			(let ((label-make-symbol->string-clos "L_make_symbol_to_string_clos_")
-				 (label-symbol->string-body "L_make_symbol_to_string_body"))
-					(string-append
-							(line-gen2 "jmp " label-make-symbol->string-clos )
-							(gen-line1 label-symbol->string-body ":")
-							(line-gen2 "push rbp")
-							(line-gen2 "mov rbp, rsp")
-							(line-gen2 "cmp arg_count, 1")
-							(line-gen2 "jne L_wrong_arity")
-							(line-gen2 "mov rbx, A0")
-							(line-gen2 "mov rbx, qword[rbx]")
-							(line-gen2 "mov rcx, rbx")
-							(line-gen2 "TYPE rbx")
-							(line-gen2 "cmp rbx, T_SYMBOL")
-							(line-gen2 "jne L_incorrect_type")
-							(line-gen2 "DATA rcx")
-							(line-gen2 "add rcx, start_of_data")
-							(line-gen2 "mov rax, rcx")
-							(line-gen2 "leave")
-							(line-gen2 "ret")
-							(gen-line1 label-make-symbol->string-clos ":")
-							(line-gen2 "mov rdi, 16")
-							(line-gen2 "call malloc")
-							(line-gen2 "MAKE_LITERAL_CLOSURE rax, start_of_data, " label-symbol->string-body)
-							(gen-newline)
-							(line-gen2 "mov qword [Lprim" (number->string (lookup-address 'symbol->string (unbox global-table))) "] , rax" )
-							))))
+		(let ((label-make-symbol->string-clos "L_make_symbol_to_string_clos_")
+		      (label-symbol->string-body "L_make_symbol_to_string_body"))
+			(string-append
+			 	(line-gen2 "jmp " label-make-symbol->string-clos )
+       			 	(gen-line1 label-symbol->string-body ":")
+				(line-gen2 "push rbp")
+			 	(line-gen2 "mov rbp, rsp")
+				(line-gen2 "cmp arg_count, 1")
+				(line-gen2 "jne L_wrong_arity")
+				(line-gen2 "mov rbx, A0")
+				(line-gen2 "mov rbx, qword[rbx]")
+			 	(line-gen2 "mov rcx, rbx")
+				(line-gen2 "TYPE rbx")
+				(line-gen2 "cmp rbx, T_SYMBOL")
+				(line-gen2 "jne L_incorrect_type")
+				(line-gen2 "DATA rcx")
+				(line-gen2 "add rcx, start_of_data")
+				(line-gen2 "mov rax, rcx")
+				(line-gen2 "leave")
+				(line-gen2 "ret")
+				(gen-line1 label-make-symbol->string-clos ":")
+				(line-gen2 "mov rdi, 16")
+				(line-gen2 "call malloc")
+				(line-gen2 "MAKE_LITERAL_CLOSURE rax, start_of_data, " label-symbol->string-body)
+			  	(gen-newline)
+				(line-gen2 "mov qword [Lprim" (number->string (lookup-address 'symbol->string (unbox global-table))) "] , rax" )))))

@@ -116,7 +116,6 @@
 	DATA_LOWER %1
 	add %1, start_of_data
 	mov %1, qword [%1]
-	
 %endmacro
 
 %macro MAKE_LITERAL_STRING 1+
@@ -163,7 +162,6 @@ endstruc
 %define An(n) qword [rbp + 8 * (n + 4)]
 
 ;;; STRING_REF dest, src, index
-;;; dest cannot be RAX! (fix this!)
 %macro STRING_REF 3
 	push rax
 	mov rax, %2
@@ -190,7 +188,7 @@ endstruc
 %endmacro
 
 ;;; VECTOR_REF dest, src, index
-;;; dest cannot be RAX! (fix this!)
+
 %macro VECTOR_REF 3
 	mov %1, %2
 	VECTOR_ELEMENTS %1
@@ -247,7 +245,6 @@ gcd:
     leave
     ret
     
-
 MAKE_SOB_STRING:
     push rbp
     mov rbp, rsp
@@ -274,10 +271,7 @@ mov rsi, 0 ;counter
     add rax, 1
     inc rsi
     jmp .mssloop
-    
-
-    
-    
+  
 .mssdone:
     mov rdi, 8
     push rbx
@@ -295,31 +289,23 @@ mov rsi, 0 ;counter
     shl r10, 4
     or r10 , T_STRING
     or qword[rax], r10
-    
-    
-    
     pop rdx
     pop rcx
     pop rbx
     leave
     ret
     
-    
-    
 MAKE_SOB_VECTOR:
     push rbp
     mov rbp, rsp
-    
     push rbx
     push rcx
     push rdx
     mov rbx, qword [rbp + 16] ;n
     mov rcx, qword [rbp + 24] ;obj
-    
     mov rax, rbx
     mov r15, 8
     mul r15
-    
     mov rdi, rax
     push rbx
     push rcx
@@ -327,8 +313,8 @@ MAKE_SOB_VECTOR:
     pop rcx 
     pop rbx
     mov r10, rax
+    mov rsi, 0 ;counter
     
-mov rsi, 0 ;counter
 .msvloop:
     cmp rsi, rbx
     je .msvdone
@@ -336,9 +322,6 @@ mov rsi, 0 ;counter
     add rax, 8
     inc rsi
     jmp .msvloop
-    
-
-    
     
 .msvdone:
     mov rdi, 8
@@ -357,9 +340,6 @@ mov rsi, 0 ;counter
     shl r10, 4
     or r10 , T_VECTOR
     or qword[rax], r10
-    
-    
-    
     pop rdx
     pop rcx
     pop rbx
@@ -376,11 +356,9 @@ MAKE_VECTOR:
     push rdx
     mov rbx, qword [rbp + 16] ;n
     mov rcx, 24 ;first obj
-    
     mov rax, rbx
     mov r15, 8
     mul r15
-    
     mov rdi, rax
     push rbx
     push rcx
@@ -399,10 +377,7 @@ mov rsi, 0 ;counter
     add rax, 8
     inc rsi
     jmp .mvloop
-    
-
-    
-    
+   
 .mvdone:
     mov rdi, 8
     push rbx
@@ -420,25 +395,18 @@ mov rsi, 0 ;counter
     shl r10, 4
     or r10 , T_VECTOR
     or qword[rax], r10
-    
-    
-    
     pop rdx
     pop rcx
     pop rbx
     leave
     ret
-    
-
 
 write_sob_undefined:
 	push rbp
 	mov rbp, rsp
-
 	mov rax, 0
 	mov rdi, .undefined
 	call printf
-
 	leave
 	ret
 
@@ -620,7 +588,6 @@ write_sob_string:
 	je .done
 	mov bl, byte [rax]
 	and rbx, 0xff
-
 	cmp rbx, CHAR_TAB
 	je .ch_tab
 	cmp rbx, CHAR_NEWLINE
@@ -631,7 +598,6 @@ write_sob_string:
 	je .ch_return
 	cmp rbx, CHAR_SPACE
 	jl .ch_hex
-	
 	mov rdi, .fs_simple_char
 	mov rsi, rbx
 	jmp .printf
@@ -771,11 +737,11 @@ section .data
 write_sob_vector:
 	push rbp
 	mov rbp, rsp
-
+	
 	mov rax, 0
 	mov rdi, .fs_open_vector
 	call printf
-
+	
 	mov rax, qword [rbp + 8 + 1*8]
 	mov rcx, rax
 	VECTOR_LENGTH rcx
@@ -839,10 +805,6 @@ write_sob_symbol:
 	push rbp
 	mov rbp, rsp
 
-	
-	
-        
-
 	mov rax, qword [rbp + 8 + 1*8]
 	DATA rax
 	add rax, start_of_data
@@ -856,21 +818,14 @@ write_sob_symbol:
 	je .done
 	mov bl, byte [rax]
 	and rbx, 0xff
-
-	
 	jl .ch_hex
-	
 	mov rdi, .fs_simple_char
 	mov rsi, rbx
 	jmp .printf
-	
 .ch_hex:
 	mov rdi, .fs_hex_char
 	mov rsi, rbx
 	jmp .printf
-	
-
-
 .printf:
 	push rax
 	push rcx
@@ -878,23 +833,19 @@ write_sob_symbol:
 	call printf
 	pop rcx
 	pop rax
-
 	dec rcx
 	inc rax
 	jmp .loop
-
 .done:
-	
-
 	leave
 	ret
+	
 section .data
 
 .fs_simple_char:
 	db "%c", 0
 .fs_hex_char:
 	db "\x%01x;", 0	
-
 
 write_sob_fraction:
 	push rbp

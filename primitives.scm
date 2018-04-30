@@ -1,7 +1,4 @@
 
-;;;#| WORKING ... |#
-
-
 (define list
 	(lambda x x))
 
@@ -25,8 +22,6 @@
 	(lambda (x)
 		(if x #f #t)))
 
-
-
 (define eq?
     (lambda(x y)
         (cond ( (and (symbol? x) (symbol? y)) (val-eq? x y))
@@ -42,8 +37,6 @@
 	(lambda (num)
 		(equal-bin num 0)))
 
- 
-
 (define null?
 	(lambda (x)
 		(val-eq? x '())))
@@ -53,13 +46,6 @@
 		(cond ((null? lst) #t)
 			  ((func (car lst)) (andmap func (cdr lst)))
 			  (else #f))))
-
-
-
-
-;;;#| Not Working with tc-applic...    All functions that contain fold(l|r) or apply|#
-
-
 
 (define foldr
 	(lambda (func init lst)
@@ -77,7 +63,6 @@
 	(lambda numbers
 		(foldl plus-bin 0 numbers)))
 
-    
 (define -
 	(lambda numbers
 		(if (equal-bin (length numbers) 1)
@@ -94,34 +79,14 @@
 			(div-bin 1 (car numbers))
 			(foldl div-bin (car numbers) (cdr numbers)))))
 
-
-;;;#| Not Working no matter what ...|#
-
-
 (define append-bin
 	(lambda (l m)
 		(if (null? l) m
-			(cons (car l) (append-bin (cdr l) m)))
-
-		)
-
-	)
+			(cons (car l) (append-bin (cdr l) m)))))
 
 (define append
 	(lambda lists
 		(foldl append-bin '() lists)))
-
-
-
-
-
-
-
-
-
-
-
-
 
 (define map
   ((lambda (y) 
